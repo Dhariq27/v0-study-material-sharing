@@ -1,0 +1,109 @@
+-- Study Material Sharing System - Oracle Database Schema
+-- CHANGE_ME: Update tablespace names and storage parameters as needed
+
+-- Create sequences for auto-increment
+CREATE SEQUENCE USER_SEQ START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE MATERIAL_SEQ START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE EVENT_SEQ START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE REG_SEQ START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE ANNOUNCE_SEQ START WITH 1 INCREMENT BY 1;
+
+-- Users table
+CREATE TABLE USERS (
+    USER_ID NUMBER PRIMARY KEY,
+    USERNAME VARCHAR2(50) NOT NULL UNIQUE,
+    PASSWORD VARCHAR2(255) NOT NULL,
+    EMAIL VARCHAR2(100) NOT NULL UNIQUE,
+    FULL_NAME VARCHAR2(100) NOT NULL,
+    ROLE VARCHAR2(20) NOT NULL CHECK (ROLE IN ('STUDENT', 'FACULTY', 'ADMIN')),
+    CREATED_AT TIMESTAMP NOT NULL,
+    UPDATED_AT TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IDX_USERS_USERNAME ON USERS(USERNAME);
+CREATE INDEX IDX_USERS_ROLE ON USERS(ROLE);
+
+-- Materials table
+CREATE TABLE MATERIALS (
+    MATERIAL_ID NUMBER PRIMARY KEY,
+    TITLE VARCHAR2(200) NOT NULL,
+    DESCRIPTION VARCHAR2(1000),
+    SUBJECT VARCHAR2(100) NOT NULL,
+    SEMESTER VARCHAR2(20) NOT NULL,
+    FILE_PATH VARCHAR2(500) NOT NULL,
+    FILE_NAME VARCHAR2(255) NOT NULL,
+    FILE_TYPE VARCHAR2(50),
+    UPLOADED_BY NUMBER NOT NULL,
+    UPLOAD_DATE TIMESTAMP NOT NULL,
+    DOWNLOAD_COUNT NUMBER DEFAULT 0,
+    FOREIGN KEY (UPLOADED_BY) REFERENCES USERS(USER_ID)
+);
+
+CREATE INDEX IDX_MATERIALS_SUBJECT ON MATERIALS(SUBJECT);
+CREATE INDEX IDX_MATERIALS_SEMESTER ON MATERIALS(SEMESTER);
+CREATE INDEX IDX_MATERIALS_UPLOADED_BY ON MATERIALS(UPLOADED_BY);
+
+-- Events table
+CREATE TABLE EVENTS (
+    EVENT_ID NUMBER PRIMARY KEY,
+    EVENT_NAME VARCHAR2(200) NOT NULL,
+    DESCRIPTION VARCHAR2(1000),
+    EVENT_DATE TIMESTAMP NOT NULL,
+    LOCATION VARCHAR2(200),
+    CREATED_BY NUMBER NOT NULL,
+    CREATED_AT TIMESTAMP NOT NULL,
+    FOREIGN KEY (CREATED_BY) REFERENCES USERS(USER_ID)
+);
+
+CREATE INDEX IDX_EVENTS_CREATED_BY ON EVENTS(CREATED_BY);
+CREATE INDEX IDX_EVENTS_DATE ON EVENTS(EVENT_DATE);
+
+-- Event Registrations table
+CREATE TABLE EVENT_REGISTRATIONS (
+    REGISTRATION_ID NUMBER PRIMARY KEY,
+    EVENT_ID NUMBER NOT NULL,
+    USER_ID NUMBER NOT NULL,
+    REGISTERED_AT TIMESTAMP NOT NULL,
+    FOREIGN KEY (EVENT_ID) REFERENCES EVENTS(EVENT_ID),
+    FOREIGN KEY (USER_ID) REFERENCES USERS(USER_ID),
+    UNIQUE (EVENT_ID, USER_ID)
+);
+
+CREATE INDEX IDX_REG_EVENT_ID ON EVENT_REGISTRATIONS(EVENT_ID);
+CREATE INDEX IDX_REG_USER_ID ON EVENT_REGISTRATIONS(USER_ID);
+
+-- Announcements table
+CREATE TABLE ANNOUNCEMENTS (
+    ANNOUNCEMENT_ID NUMBER PRIMARY KEY,
+    TITLE VARCHAR2(200) NOT NULL,
+    CONTENT VARCHAR2(2000) NOT NULL,
+    POSTED_BY NUMBER NOT NULL,
+    POST_DATE TIMESTAMP NOT NULL,
+    FOREIGN KEY (POSTED_BY) REFERENCES USERS(USER_ID)
+);
+
+CREATE INDEX IDX_ANNOUNCE_DATE ON ANNOUNCEMENTS(POST_DATE);
+
+-- Sample Data Insertion
+-- Insert sample users (3 users: 1 student, 1 faculty, 1 admin)
+-- Note: Passwords should be hashed in production. These are BCrypt hashes for 'password123'
+INSERT INTO USERS VALUES (USER_SEQ.NEXTVAL, 'student1', '$2a$10$slYQmyNdGzin7olVN3p5Be7DlH.PKZbv5H8KfzzQgXXbVxzy990qm', 'student1@example.com', 'John Student', 'STUDENT', SYSDATE, SYSDATE);
+INSERT INTO USERS VALUES (USER_SEQ.NEXTVAL, 'faculty1', '$2a$10$slYQmyNdGzin7olVN3p5Be7DlH.PKZbv5H8KfzzQgXXbVxzy990qm', 'faculty1@example.com', 'Dr. Jane Faculty', 'FACULTY', SYSDATE, SYSDATE);
+INSERT INTO USERS VALUES (USER_SEQ.NEXTVAL, 'admin1', '$2a$10$slYQmyNdGzin7olVN3p5Be7DlH.PKZbv5H8KfzzQgXXbVxzy990qm', 'admin1@example.com', 'Admin User', 'ADMIN', SYSDATE, SYSDATE);
+
+-- Insert sample materials (5 materials)
+INSERT INTO MATERIALS VALUES (MATERIAL_SEQ.NEXTVAL, 'Java Basics', 'Introduction to Java programming', 'Computer Science', 'Semester 1', '/uploads/2025/01/java_basics.pdf', 'java_basics.pdf', 'application/pdf', 2, SYSDATE, 5);
+INSERT INTO MATERIALS VALUES (MATERIAL_SEQ.NEXTVAL, 'Database Design', 'SQL and database design principles', 'Computer Science', 'Semester 2', '/uploads/2025/01/database_design.pdf', 'database_design.pdf', 'application/pdf', 2, SYSDATE, 3);
+INSERT INTO MATERIALS VALUES (MATERIAL_SEQ.NEXTVAL, 'Web Development', 'HTML, CSS, and JavaScript fundamentals', 'Computer Science', 'Semester 2', '/uploads/2025/01/web_dev.pdf', 'web_dev.pdf', 'application/pdf', 2, SYSDATE, 8);
+INSERT INTO MATERIALS VALUES (MATERIAL_SEQ.NEXTVAL, 'Data Structures', 'Arrays, Linked Lists, Trees, and Graphs', 'Computer Science', 'Semester 1', '/uploads/2025/01/data_structures.pdf', 'data_structures.pdf', 'application/pdf', 2, SYSDATE, 12);
+INSERT INTO MATERIALS VALUES (MATERIAL_SEQ.NEXTVAL, 'Algorithms', 'Sorting, Searching, and Dynamic Programming', 'Computer Science', 'Semester 2', '/uploads/2025/01/algorithms.pdf', 'algorithms.pdf', 'application/pdf', 2, SYSDATE, 7);
+
+-- Insert sample events (2 events)
+INSERT INTO EVENTS VALUES (EVENT_SEQ.NEXTVAL, 'Java Workshop', 'Learn advanced Java concepts', SYSDATE + 7, 'Room 101', 2, SYSDATE);
+INSERT INTO EVENTS VALUES (EVENT_SEQ.NEXTVAL, 'Database Seminar', 'Oracle database optimization techniques', SYSDATE + 14, 'Auditorium', 2, SYSDATE);
+
+-- Insert sample announcements
+INSERT INTO ANNOUNCEMENTS VALUES (ANNOUNCE_SEQ.NEXTVAL, 'Welcome to Study Portal', 'Welcome to our new study material sharing system!', 3, SYSDATE);
+INSERT INTO ANNOUNCEMENTS VALUES (ANNOUNCE_SEQ.NEXTVAL, 'New Materials Available', 'Check out the latest study materials uploaded by faculty', 3, SYSDATE - 1);
+
+COMMIT;
