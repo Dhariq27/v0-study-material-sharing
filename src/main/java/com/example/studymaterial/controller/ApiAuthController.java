@@ -3,6 +3,7 @@ package com.example.studymaterial.controller;
 import com.example.studymaterial.model.User;
 import com.example.studymaterial.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
@@ -45,31 +46,69 @@ public class ApiAuthController {
     
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Map<String, String> request) {
-        String username = request.get("username");
-        String email = request.get("email");
-        String password = request.get("password");
-        String fullName = request.get("fullName");
-        String role = request.getOrDefault("role", "student");
-        
-        if (userService.getUserByUsername(username).isPresent()) {
+        try {
+            String username = request.get("username");
+            String email = request.get("email");
+            String password = request.get("password");
+            String fullName = request.get("fullName");
+            String role = request.getOrDefault("role", "student");
+            
+            if (username == null || username.trim().isEmpty()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", false);
+                response.put("message", "Username is required");
+                return ResponseEntity.status(400).body(response);
+            }
+            
+            if (email == null || email.trim().isEmpty()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", false);
+                response.put("message", "Email is required");
+                return ResponseEntity.status(400).body(response);
+            }
+            
+            if (password == null || password.trim().isEmpty()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", false);
+                response.put("message", "Password is required");
+                return ResponseEntity.status(400).body(response);
+            }
+            
+            if (fullName == null || fullName.trim().isEmpty()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", false);
+                response.put("message", "Full name is required");
+                return ResponseEntity.status(400).body(response);
+            }
+            
+            User user = new User();
+            user.setUsername(username.trim());
+            user.setEmail(email.trim());
+            user.setPassword(password);
+            user.setFullName(fullName.trim());
+            user.setRole(role.toLowerCase());
+            
+            User registeredUser = userService.registerUser(user);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "User registered successfully");
+            response.put("userId", registeredUser.getUserId());
+            response.put("username", registeredUser.getUsername());
+            response.put("email", registeredUser.getEmail());
+            return ResponseEntity.status(201).body(response);
+        } catch (DataIntegrityViolationException e) {
             Map<String, Object> response = new HashMap<>();
             response.put("success", false);
-            response.put("message", "Username already exists");
-            return ResponseEntity.status(400).body(response);
+            response.put("message", "Username or email already exists");
+            return ResponseEntity.status(409).body(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "Registration failed: " + e.getMessage());
+            System.err.println("[v0] Registration error: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(response);
         }
-        
-        User newUser = new User();
-        newUser.setUsername(username);
-        newUser.setEmail(email);
-        newUser.setPassword(password);
-        newUser.setFullName(fullName);
-        newUser.setRole(role);
-        
-        userService.registerUser(newUser);
-        
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "Registration successful");
-        return ResponseEntity.ok(response);
     }
 }

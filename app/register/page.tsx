@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -10,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Link from "next/link"
-import { register as registerUser } from "@/lib/api"
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -39,32 +37,37 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
-      const response = await registerUser({
-        username: formData.username,
-        email: formData.email,
-        password: formData.password,
-        fullName: formData.fullName,
-        role: formData.role,
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
+
+      const response = await fetch(`${apiUrl}/auth/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
       })
 
-      if (response.success) {
+      const data = await response.json()
+
+      if (data.success) {
         setSuccess("Registration successful! Redirecting to login...")
         setTimeout(() => router.push("/login"), 2000)
       } else {
-        setError(response.message || "Registration failed")
+        setError(data.message || "Registration failed")
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to connect to server"
+      console.error("[v0] Register error:", err)
 
       if (errorMessage.includes("Failed to fetch") || errorMessage.includes("ERR_")) {
-        setError("Cannot connect to backend. Make sure the backend is running on port 8080.")
+        setError(
+          "Cannot connect to backend. Make sure:\n1. Backend is running on port 8080\n2. Run: mvn spring-boot:run\n3. Check that http://localhost:8080/api/auth/register is accessible",
+        )
       } else if (errorMessage.includes("already exists")) {
-        setError("Username already exists. Please choose a different username.")
+        setError("Username or email already exists. Please choose different values.")
       } else {
         setError(errorMessage || "Registration failed. Please try again.")
       }
-
-      console.error("[v0] Register error:", err)
     } finally {
       setLoading(false)
     }
@@ -81,7 +84,7 @@ export default function RegisterPage() {
           <form onSubmit={handleRegister} className="space-y-4">
             {error && (
               <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription className="whitespace-pre-line text-sm">{error}</AlertDescription>
               </Alert>
             )}
             {success && (
@@ -99,6 +102,7 @@ export default function RegisterPage() {
                 value={formData.fullName}
                 onChange={handleChange}
                 required
+                disabled={loading}
               />
             </div>
 
@@ -111,6 +115,7 @@ export default function RegisterPage() {
                 value={formData.username}
                 onChange={handleChange}
                 required
+                disabled={loading}
               />
             </div>
 
@@ -123,6 +128,7 @@ export default function RegisterPage() {
                 value={formData.email}
                 onChange={handleChange}
                 required
+                disabled={loading}
               />
             </div>
 
@@ -135,12 +141,17 @@ export default function RegisterPage() {
                 value={formData.password}
                 onChange={handleChange}
                 required
+                disabled={loading}
               />
             </div>
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Role</label>
-              <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+              <Select
+                value={formData.role}
+                onValueChange={(value) => setFormData({ ...formData, role: value })}
+                disabled={loading}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

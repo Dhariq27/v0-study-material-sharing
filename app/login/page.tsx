@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -23,23 +22,15 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const response = await fetch(
-        process.env.NEXT_PUBLIC_API_URL
-          ? `${process.env.NEXT_PUBLIC_API_URL}/auth/login`
-          : "http://localhost:8080/api/auth/login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ username, password }),
-        },
-      )
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || `Login failed: ${response.statusText}`)
-      }
+      const response = await fetch(`${apiUrl}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      })
 
       const data = await response.json()
 
@@ -50,16 +41,11 @@ export default function LoginPage() {
         setError(data.message || "Login failed")
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to fetch"
+      const errorMessage = err instanceof Error ? err.message : "Failed to connect to backend"
       console.error("[v0] Login error:", err)
-
-      if (errorMessage.includes("Failed to fetch")) {
-        setError(
-          "Cannot connect to backend. Make sure:\n1. Backend is running on port 8080\n2. Run: mvn spring-boot:run",
-        )
-      } else {
-        setError(errorMessage)
-      }
+      setError(
+        "Cannot connect to backend. Make sure:\n1. Backend is running on port 8080\n2. Run: mvn spring-boot:run\n3. Check that http://localhost:8080/api/auth/login is accessible",
+      )
     } finally {
       setLoading(false)
     }
@@ -76,7 +62,7 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-4">
             {error && (
               <Alert variant="destructive">
-                <AlertDescription className="whitespace-pre-line">{error}</AlertDescription>
+                <AlertDescription className="whitespace-pre-line text-sm">{error}</AlertDescription>
               </Alert>
             )}
 
@@ -88,6 +74,7 @@ export default function LoginPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
+                disabled={loading}
               />
             </div>
 
@@ -99,6 +86,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={loading}
               />
             </div>
 

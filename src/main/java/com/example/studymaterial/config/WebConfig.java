@@ -12,6 +12,7 @@ public class WebConfig implements WebMvcConfigurer {
     
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
-        registry.addViewController("/").setViewName("redirect:/dashboard");
+        // Removed JSP view controller to prevent interference with REST APIs
+        // REST endpoints will be handled by @RestController classes
     }
 }

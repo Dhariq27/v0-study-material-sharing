@@ -39,11 +39,32 @@ export interface Event {
 }
 
 async function handleResponse(response: Response) {
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}))
-    throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`)
+  const contentType = response.headers.get("content-type")
+
+  // Check if response is HTML (error page from backend)
+  if (contentType?.includes("text/html")) {
+    console.error("[v0] Backend returned HTML error page. Status:", response.status)
+    throw new Error(
+      `Backend error (${response.status}): The server returned an error page. Check if the backend is running properly.`,
+    )
   }
-  return response.json()
+
+  if (!response.ok) {
+    try {
+      const errorData = await response.json()
+      throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`)
+    } catch (e) {
+      // If JSON parsing fails, throw a generic error
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+  }
+
+  try {
+    return await response.json()
+  } catch (e) {
+    console.error("[v0] Failed to parse response as JSON:", e)
+    throw new Error("Invalid response format from server")
+  }
 }
 
 // Auth API calls
@@ -63,6 +84,7 @@ export async function login(credentials: LoginRequest) {
 
 export async function register(data: RegisterRequest) {
   try {
+    console.log("[v0] Registering user:", { ...data, password: "***" })
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
